@@ -258,11 +258,34 @@
                                             .attr('alt', response.data.name);
                                     }
                                     else {
-                                        el = fileContainer.append($('<p>' + link.text().replace(/[^a-zA-Z0-9_\.]/g,"") + ':</p><hr /><pre><code></code></pre>'));
+                                        el = fileContainer.append($('<p>' + link.text().replace(/[^a-zA-Z0-9_\.]/g,"") + ':</p><p style="cursor: pointer; text-decoration: underline;" class="copyCode">Copy Contents to Clipboard</p><hr /><pre><code></code></pre>'));
                                         if(typeof _this.extensions[extension] != 'undefined')
                                             el.find('code').addClass(_this.extensions[extension]);
                                         el.find('code').html(String(decode64(response.data.content)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'));
                                         el.find('pre').vanGogh();
+                                        el.on('click', '.copyCode', function(e){
+											try{
+												// Create a "hidden" input
+												var aux = document.createElement("textarea");
+
+												// Assign it the value of the specified element
+												aux.value = $(this).parent().find('pre').text();
+
+												// Append it to the body
+												document.body.appendChild(aux);
+
+												// Highlight its content
+												aux.select();
+
+												// Copy the highlighted text
+												document.execCommand("copy");
+
+												// Remove it from the body
+												document.body.removeChild(aux);
+												
+												alert("Code copied to clipboard!");
+											}catch{}
+										});
                                     }
 
                                     transition(el, 'left');
