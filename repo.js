@@ -27,6 +27,14 @@
             encode64    = function(a){a=escape(a);var b="";var c,d,e="";var f,g,h,i="";var j=0;do{c=a.charCodeAt(j++);d=a.charCodeAt(j++);e=a.charCodeAt(j++);f=c>>2;g=(c&3)<<4|d>>4;h=(d&15)<<2|e>>6;i=e&63;if(isNaN(d)){h=i=64}else if(isNaN(e)){i=64}b=b+keyStr64.charAt(f)+keyStr64.charAt(g)+keyStr64.charAt(h)+keyStr64.charAt(i);c=d=e="";f=g=h=i=""}while(j<a.length);return b},
             decode64    = function(a){var b="";var c,d,e="";var f,g,h,i="";var j=0;var k=/[^A-Za-z0-9\+\/\=]/g;if(k.exec(a)){}a=a.replace(/[^A-Za-z0-9\+\/\=]/g,"");do{f=keyStr64.indexOf(a.charAt(j++));g=keyStr64.indexOf(a.charAt(j++));h=keyStr64.indexOf(a.charAt(j++));i=keyStr64.indexOf(a.charAt(j++));c=f<<2|g>>4;d=(g&15)<<4|h>>2;e=(h&3)<<6|i;b=b+String.fromCharCode(c);if(h!=64){b=b+String.fromCharCode(d)}if(i!=64){b=b+String.fromCharCode(e)}c=d=e="";f=g=h=i=""}while(j<a.length);return unescape(b)},
             transition  = function(el, direction, init){
+				
+				if(!(el instanceof jQuery)){
+					el = $(el);
+					if(el.is('image')){
+						el = el.closest('.file.page');
+					}
+				}
+				
                 var opposite    = (direction === 'left') ? '' : 'left';
 
                 if(init){
@@ -222,10 +230,10 @@
                     // Is link a file
                     if(parent.hasClass('file')){
 
-                        el = $('#' + link.data('id'));
+                        el = $('#' + link.data('id') + '_' + link.text().replace(/[\W_]+/g,""));
 
-                        if(el.legnth > 0){
-                            el.addClass('active');
+                        if(el.length > 0){
+							transition(el, 'left');
                         } else {
                             $.ajax({
                                 url: 'https://api.github.com/repos/' + _this.settings.user + '/' + _this.settings.name + '/contents/' + link.data('path') + '?ref=' + _this.settings.branch,
@@ -233,18 +241,24 @@
                                 data: {},
                                 dataType: 'jsonp',
                                 success: function(response){
-                                    var fileContainer = $('<div class="file page" id="' + link.data('id') + '"></div>'),
-                                        extension = response.data.name.split('.').pop().toLowerCase(),
+                                    repo.append('<div class="file page" id="' + link.data('id') + '_' + link.text().replace(/[\W_]+/g,"") + '"></div>');
+                                    var fileContainer = $('#' + link.data('id') + '_' + link.text().replace(/[\W_]+/g,""));
+                                    var extension = response.data.name.split('.').pop().toLowerCase(),
                                         mimeType = getMimeTypeByExtension(extension);
 
                                     if('image' === mimeType.split('/').shift()){
-                                        el = fileContainer.append($('<div class="image"><span class="border-wrap"><img src="" /></span></div>')).appendTo(repo);
+                                        el = fileContainer.append($('<p>' + link.text().replace(/[^a-zA-Z0-9_\.]/g,"") + ':</p><hr /><div class="image"><span class="border-wrap"><img src="" class="repojs_loaded_image_' + link.data('id') + '_' + link.text().replace(/[\W_]+/g,"") + '" /></span></div>'));
+                                        
+                                        $('img.repojs_loaded_image_' + link.data('id') + '_' + link.text().replace(/[\W_]+/g,"")).on('load',function(){
+											transition(el, 'left');
+										});
+                                        
                                         el.find('img')
                                             .attr('src', 'data:' + mimeType + ';base64,' + response.data.content)
                                             .attr('alt', response.data.name);
                                     }
                                     else {
-                                        el = fileContainer.append($('<pre><code></code></pre>')).appendTo(repo);
+                                        el = fileContainer.append($('<p>' + link.text().replace(/[^a-zA-Z0-9_\.]/g,"") + ':</p><hr /><pre><code></code></pre>'));
                                         if(typeof _this.extensions[extension] != 'undefined')
                                             el.find('code').addClass(_this.extensions[extension]);
                                         el.find('code').html(String(decode64(response.data.content)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'));
